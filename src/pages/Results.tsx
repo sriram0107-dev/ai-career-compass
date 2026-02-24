@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
+import PageTransition from '@/components/PageTransition';
 import CareerCard from '@/components/CareerCard';
 import FilterTabs from '@/components/FilterTabs';
 import { useUserData } from '@/contexts/UserDataContext';
@@ -30,6 +31,7 @@ const Results = () => {
   };
 
   return (
+    <PageTransition>
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-1 container mx-auto px-4 py-10">
@@ -66,6 +68,7 @@ const Results = () => {
         </motion.div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

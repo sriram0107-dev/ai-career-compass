@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Calendar, Target, ArrowRight, Zap, CheckCircle, Clock, TrendingUp, Download, Sparkles } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/contexts/UserDataContext';
 
@@ -26,6 +27,7 @@ const Profile = () => {
   const alternativeCareers = analysisResult?.careers.slice(1, 4) || [];
 
   return (
+    <PageTransition>
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-1 container mx-auto px-4 py-10">
@@ -151,6 +153,7 @@ const Profile = () => {
         </motion.div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

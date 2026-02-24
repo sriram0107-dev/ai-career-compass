@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Home, Map, ClipboardList, BookOpen, Medal, FileText, User, Bot, Trophy, Flame, Clock, Zap, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import PageTransition from '@/components/PageTransition';
 import TaskItem from '@/components/TaskItem';
 import Timer from '@/components/Timer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,6 +51,7 @@ const Roadmap = () => {
   const todayTasks = roadmap.flatMap(m => m.tasks).filter(t => !t.completed).slice(0, 3);
 
   return (
+    <PageTransition>
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
@@ -190,6 +192,7 @@ const Roadmap = () => {
         </aside>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

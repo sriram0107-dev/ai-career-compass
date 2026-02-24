@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, RotateCcw, ChevronLeft, ChevronRight, Shuffle, Loader2, BookOpen } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateFlashcards, FlashcardDeck, Flashcard } from '@/utils/flashcardGenerator';
 
@@ -77,6 +78,7 @@ const StudyTools = () => {
   if (activeDeck) {
     const card = activeDeck.cards[cardIndex];
     return (
+      <PageTransition>
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <div className="flex-1 container mx-auto px-4 py-10 max-w-2xl">
@@ -115,10 +117,12 @@ const StudyTools = () => {
           </div>
         </div>
       </div>
+      </PageTransition>
     );
   }
 
   return (
+    <PageTransition>
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-1 container mx-auto px-4 py-10">
@@ -169,6 +173,7 @@ const StudyTools = () => {
         </motion.div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 
