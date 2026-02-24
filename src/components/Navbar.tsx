@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Sun, Moon, LogOut, Menu, X, Compass } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
@@ -61,8 +62,9 @@ const Navbar = () => {
       </div>
 
       {/* Mobile menu */}
+      <AnimatePresence>
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-background px-4 py-4 space-y-3">
+        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="md:hidden border-t border-border bg-background px-4 py-4 space-y-3 overflow-hidden">
           {isAuthenticated ? (
             <>
               <Link to="/quiz" onClick={() => setMobileOpen(false)} className="block text-sm py-2 text-muted-foreground hover:text-foreground">Quiz</Link>
@@ -76,8 +78,9 @@ const Navbar = () => {
           ) : (
             <Link to="/auth" onClick={() => setMobileOpen(false)} className="block gradient-bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium text-center">Sign In</Link>
           )}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </nav>
   );
 };

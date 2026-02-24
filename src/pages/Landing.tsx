@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Stethoscope, Code, Palette, FlaskConical, GraduationCap, Scale, Briefcase, Wrench, Brain, Target, Map, Zap, Users, BookOpen, Trophy, ArrowRight, Compass, Sparkles, ChevronRight } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
 
 const careerIcons = [
@@ -55,6 +56,7 @@ const Landing = () => {
   const resultsLink = isAuthenticated ? '/results' : '/auth';
 
   return (
+    <PageTransition>
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
@@ -176,6 +178,7 @@ const Landing = () => {
 
       <Footer />
     </div>
+    </PageTransition>
   );
 };
 

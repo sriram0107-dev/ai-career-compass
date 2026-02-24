@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Mail, Lock, User, Github, Compass } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
+import PageTransition from '@/components/PageTransition';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,10 +27,11 @@ const Auth = () => {
   };
 
   return (
+    <PageTransition>
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
+        <motion.div className="w-full max-w-md" initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3 }}>
           <div className="text-center mb-8">
             <Compass className="h-12 w-12 text-primary mx-auto mb-4" />
             <h1 className="text-3xl font-bold mb-2">{isLogin ? 'Welcome Back' : 'Create Account'}</h1>
@@ -94,9 +97,10 @@ const Auth = () => {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

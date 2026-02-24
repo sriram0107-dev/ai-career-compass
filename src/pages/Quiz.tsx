@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, Users, BarChart3, Wrench, Lightbulb, Building2, Trees, MonitorSmartphone, GraduationCap, BookOpen, Hammer, Brain, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import PageTransition from '@/components/PageTransition';
 import AIAnalysisBox from '@/components/AIAnalysisBox';
 import { analyzeInterests, AnalysisResult } from '@/utils/careerData';
 import { useUserData } from '@/contexts/UserDataContext';
@@ -88,6 +89,7 @@ const Quiz = () => {
   ];
 
   return (
+    <PageTransition>
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-1 container mx-auto px-4 py-10">
@@ -186,6 +188,7 @@ const Quiz = () => {
         )}
       </div>
     </div>
+    </PageTransition>
   );
 };
 

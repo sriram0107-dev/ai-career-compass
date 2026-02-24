@@ -1,4 +1,5 @@
 import { Bookmark, BookmarkCheck, MapPin, GraduationCap, DollarSign, Briefcase } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Career } from '@/utils/careerData';
 
 interface CareerCardProps {
@@ -13,7 +14,7 @@ const CareerCard = ({ career, isSaved, onSave, onViewRoadmap }: CareerCardProps)
   const barColor = percentage >= 70 ? 'bg-primary' : percentage >= 40 ? 'bg-accent' : 'bg-muted-foreground';
 
   return (
-    <div className="glass-card rounded-xl p-5 flex flex-col gap-4 hover:border-primary/30 transition-all group">
+    <motion.div whileHover={{ y: -4, scale: 1.01 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }} className="glass-card rounded-xl p-5 flex flex-col gap-4 hover:border-primary/30 transition-all group">
       <div className="flex items-start justify-between">
         <div>
           <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary">{career.category}</span>
@@ -51,10 +52,10 @@ const CareerCard = ({ career, isSaved, onSave, onViewRoadmap }: CareerCardProps)
         ))}
       </div>
 
-      <button onClick={onViewRoadmap} className="mt-auto w-full gradient-bg-primary text-primary-foreground py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+      <motion.button whileTap={{ scale: 0.97 }} onClick={onViewRoadmap} className="mt-auto w-full gradient-bg-primary text-primary-foreground py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
         View Roadmap
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 };
 

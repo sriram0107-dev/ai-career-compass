@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Upload, FileText, MessageSquare, Search, Sparkles, Bot, User as UserIcon } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
 
 const mockSummary = {
@@ -62,6 +63,7 @@ const DocumentTools = () => {
   const currentResult = mockSummary[option];
 
   return (
+    <PageTransition>
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-1 container mx-auto px-4 py-10">
@@ -169,6 +171,7 @@ const DocumentTools = () => {
         </motion.div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 
