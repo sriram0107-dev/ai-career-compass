@@ -1,66 +1,77 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, FileText, MessageSquare, Search, Sparkles, Bot, User as UserIcon } from 'lucide-react';
+import { Upload, FileText, MessageSquare, Search, Sparkles, Bot, User as UserIcon, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
-
-const mockSummary = {
-  summary: {
-    title: 'Document Summary',
-    points: [
-      'Key finding: The document covers essential concepts and frameworks',
-      'Important methodology: A structured approach is recommended',
-      'Results indicate positive outcomes when following best practices',
-      'Conclusion: Further study and practical application are advised',
-    ],
-    terms: ['Framework', 'Methodology', 'Best Practices', 'Analysis', 'Implementation'],
-    actions: ['Review core concepts', 'Practice with real examples', 'Create a study schedule', 'Discuss with peers'],
-  },
-  studyGuide: {
-    title: 'Study Guide',
-    points: [
-      'Chapter 1: Foundational concepts and terminology',
-      'Chapter 2: Practical applications and case studies',
-      'Chapter 3: Advanced techniques and methodologies',
-      'Review: Practice questions and self-assessment',
-    ],
-    terms: ['Definitions', 'Case Studies', 'Techniques', 'Assessment', 'Review'],
-    actions: ['Summarize each chapter', 'Complete practice exercises', 'Create flashcards for key terms'],
-  },
-  keyTerms: {
-    title: 'Key Terms Extracted',
-    points: [
-      'Core terminology identified from the document',
-      'Technical vocabulary organized by topic',
-      'Related concepts and cross-references noted',
-    ],
-    terms: ['Term 1', 'Term 2', 'Term 3', 'Term 4', 'Term 5', 'Term 6'],
-    actions: ['Create a glossary', 'Study terms in context', 'Use in practice writing'],
-  },
-};
-
-const mockChat = [
-  { role: 'user' as const, text: 'What are the main topics covered in this document?' },
-  { role: 'ai' as const, text: 'The document covers three main areas: foundational theory, practical applications, and current research trends. Would you like me to elaborate on any of these?' },
-  { role: 'user' as const, text: 'Can you explain the practical applications section?' },
-  { role: 'ai' as const, text: 'The practical applications section discusses real-world implementations, including case studies from industry leaders, step-by-step guides for common scenarios, and best practices for deployment.' },
-];
+import { supabase } from '@/integrations/supabase/client';
 
 const DocumentTools = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState<'summarize' | 'ask'>('summarize');
   const [option, setOption] = useState<'summary' | 'keyTerms' | 'studyGuide'>('summary');
+  const [documentText, setDocumentText] = useState('');
   const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState<{ title: string; points: string[]; terms: string[]; actions: string[] } | null>(null);
+  const [loading, setLoading] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/auth');
   }, [isAuthenticated, navigate]);
 
-  const currentResult = mockSummary[option];
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setDocumentText(ev.target?.result as string || '');
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSummarize = async () => {
+    if (!documentText.trim()) return;
+    setLoading(true);
+    setShowResult(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-document', {
+        body: { action: 'summarize', documentText, option },
+      });
+      if (error) throw error;
+      setResult(data);
+      setShowResult(true);
+    } catch (err) {
+      console.error('Summarize failed:', err);
+      setResult({ title: 'Error', points: ['Failed to analyze document. Please try again.'], terms: [], actions: [] });
+      setShowResult(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChat = async () => {
+    if (!chatInput.trim() || !documentText.trim()) return;
+    const userMsg = chatInput;
+    setChatInput('');
+    setChatHistory(prev => [...prev, { role: 'user', text: userMsg }]);
+    setChatLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-document', {
+        body: { action: 'chat', documentText, chatHistory, question: userMsg },
+      });
+      if (error) throw error;
+      setChatHistory(prev => [...prev, { role: 'ai', text: data.reply }]);
+    } catch (err) {
+      setChatHistory(prev => [...prev, { role: 'ai', text: 'Sorry, I encountered an error. Please try again.' }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   return (
     <PageTransition>
@@ -81,16 +92,27 @@ const DocumentTools = () => {
             </button>
           </div>
 
+          {/* Document Input */}
+          <div className="max-w-3xl mb-6">
+            <div className="glass-card rounded-2xl p-6 border-dashed border-2 border-border hover:border-primary/30 transition-colors mb-4">
+              <textarea
+                value={documentText}
+                onChange={e => setDocumentText(e.target.value)}
+                placeholder="Paste your document text here, or upload a text file below..."
+                className="w-full h-32 bg-secondary rounded-xl p-4 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 border border-border mb-3"
+              />
+              <div className="flex items-center gap-3">
+                <label className="cursor-pointer gradient-bg-primary text-primary-foreground px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 flex items-center gap-2">
+                  <Upload className="h-4 w-4" /> Upload .txt File
+                  <input type="file" accept=".txt" onChange={handleFileUpload} className="hidden" />
+                </label>
+                {documentText && <span className="text-xs text-muted-foreground">{documentText.length} characters loaded</span>}
+              </div>
+            </div>
+          </div>
+
           {tab === 'summarize' ? (
             <div className="max-w-3xl">
-              {/* Dropzone */}
-              <div className="glass-card rounded-2xl p-10 text-center border-dashed border-2 border-border hover:border-primary/30 transition-colors cursor-pointer mb-6">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="font-semibold mb-1">Drop your document here</p>
-                <p className="text-sm text-muted-foreground">PDF, DOCX, or TXT – up to 10MB</p>
-                <button className="mt-4 gradient-bg-primary text-primary-foreground px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90">Browse Files</button>
-              </div>
-
               {/* Options */}
               <div className="flex flex-wrap gap-3 mb-6">
                 {[
@@ -104,43 +126,50 @@ const DocumentTools = () => {
                 ))}
               </div>
 
-              <button onClick={() => setShowResult(true)} className="gradient-bg-primary text-primary-foreground px-8 py-3 rounded-xl font-semibold hover:opacity-90 flex items-center gap-2">
-                <Sparkles className="h-5 w-5" /> Summarize
+              <button onClick={handleSummarize} disabled={loading || !documentText.trim()} className="gradient-bg-primary text-primary-foreground px-8 py-3 rounded-xl font-semibold hover:opacity-90 flex items-center gap-2 disabled:opacity-50">
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                {loading ? 'Analyzing...' : 'Summarize'}
               </button>
 
               {/* Result */}
-              {showResult && (
+              {showResult && result && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-6 mt-6">
-                  <h3 className="font-bold text-lg mb-4">{currentResult.title}</h3>
+                  <h3 className="font-bold text-lg mb-4">{result.title}</h3>
                   <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2">Key Points</h4>
-                      <ul className="space-y-2">
-                        {currentResult.points.map((p, i) => (
-                          <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                            <span className="text-primary mt-1">•</span> {p}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2">Key Terms</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {currentResult.terms.map(t => (
-                          <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary">{t}</span>
-                        ))}
+                    {result.points.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Key Points</h4>
+                        <ul className="space-y-2">
+                          {result.points.map((p, i) => (
+                            <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                              <span className="text-primary mt-1">•</span> {p}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2">Action Items</h4>
-                      <ul className="space-y-1">
-                        {currentResult.actions.map((a, i) => (
-                          <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
-                            <span className="text-accent">✓</span> {a}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    )}
+                    {result.terms.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Key Terms</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {result.terms.map(t => (
+                            <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary">{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {result.actions.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Action Items</h4>
+                        <ul className="space-y-1">
+                          {result.actions.map((a, i) => (
+                            <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
+                              <span className="text-accent">✓</span> {a}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -149,7 +178,10 @@ const DocumentTools = () => {
             <div className="max-w-3xl">
               {/* Chat */}
               <div className="glass-card rounded-xl p-6 mb-4 min-h-[300px] max-h-[500px] overflow-y-auto space-y-4">
-                {mockChat.map((msg, i) => (
+                {chatHistory.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-10">Paste a document above, then ask questions about it here.</p>
+                )}
+                {chatHistory.map((msg, i) => (
                   <div key={i} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                     {msg.role === 'ai' && <div className="h-8 w-8 rounded-full gradient-bg-primary flex items-center justify-center flex-shrink-0"><Bot className="h-4 w-4 text-primary-foreground" /></div>}
                     <div className={`max-w-[80%] p-3 rounded-xl text-sm ${msg.role === 'user' ? 'bg-primary/10 text-foreground' : 'bg-secondary text-foreground'}`}>
@@ -158,14 +190,27 @@ const DocumentTools = () => {
                     {msg.role === 'user' && <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><UserIcon className="h-4 w-4" /></div>}
                   </div>
                 ))}
+                {chatLoading && (
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full gradient-bg-primary flex items-center justify-center flex-shrink-0"><Bot className="h-4 w-4 text-primary-foreground" /></div>
+                    <div className="p-3 rounded-xl bg-secondary"><Loader2 className="h-4 w-4 animate-spin" /></div>
+                  </div>
+                )}
               </div>
               <div className="flex gap-3">
-                <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ask about your documents..." className="flex-1 bg-secondary rounded-lg px-4 py-2.5 text-sm border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                <button className="gradient-bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium text-sm hover:opacity-90">
+                <input
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleChat()}
+                  placeholder="Ask about your document..."
+                  disabled={!documentText.trim()}
+                  className="flex-1 bg-secondary rounded-lg px-4 py-2.5 text-sm border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                />
+                <button onClick={handleChat} disabled={chatLoading || !chatInput.trim() || !documentText.trim()} className="gradient-bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium text-sm hover:opacity-90 disabled:opacity-50">
                   <Search className="h-4 w-4" />
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Sample questions: "What are the key takeaways?", "Explain the methodology", "Create a quiz from this document"</p>
+              <p className="text-xs text-muted-foreground mt-2">Ask: "What are the key takeaways?", "Explain the methodology", "Create a quiz from this document"</p>
             </div>
           )}
         </motion.div>
