@@ -8,6 +8,7 @@ import AIAnalysisBox from '@/components/AIAnalysisBox';
 import { analyzeInterests, AnalysisResult } from '@/utils/careerData';
 import { useUserData } from '@/contexts/UserDataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const hints = [
   '"I love helping people and I\'m fascinated by the human body..."',
@@ -39,28 +40,31 @@ const Quiz = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleAnalyze = () => {
+  const callAIAnalysis = async (navigateAfter = false) => {
     if (!text.trim()) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-career-analysis', {
+        body: { text, quizAnswers },
+      });
+      if (error) throw error;
+      const result: AnalysisResult = { ...data, inputText: text };
+      setLocalResult(result);
+      setAnalysisResult(result);
+      if (navigateAfter) navigate('/results', { state: { fromAnalysis: true } });
+    } catch (err) {
+      console.error('AI analysis failed, falling back to local:', err);
       const result = analyzeInterests(text, quizAnswers);
       setLocalResult(result);
       setAnalysisResult(result);
+      if (navigateAfter) navigate('/results', { state: { fromAnalysis: true } });
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
-  const handleRefine = () => {
-    if (!text.trim()) return;
-    setLoading(true);
-    setTimeout(() => {
-      const result = analyzeInterests(text, quizAnswers);
-      setLocalResult(result);
-      setAnalysisResult(result);
-      setLoading(false);
-      navigate('/results', { state: { fromAnalysis: true } });
-    }, 1000);
-  };
+  const handleAnalyze = () => callAIAnalysis(false);
+  const handleRefine = () => callAIAnalysis(true);
 
   const scrollToQuiz = () => {
     setStep(2);

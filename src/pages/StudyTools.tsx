@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateFlashcards, FlashcardDeck, Flashcard } from '@/utils/flashcardGenerator';
+import { supabase } from '@/integrations/supabase/client';
 
 const StudyTools = () => {
   const navigate = useNavigate();
@@ -24,17 +25,40 @@ const StudyTools = () => {
     if (!isAuthenticated) navigate('/auth');
   }, [isAuthenticated, navigate]);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!topic.trim()) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-flashcards', {
+        body: { topic },
+      });
+      if (error) throw error;
+      const deck: FlashcardDeck = {
+        id: `deck-${Date.now()}`,
+        topic,
+        cards: (data.cards || []).map((c: { front: string; back: string }, i: number) => ({
+          id: `card-${Date.now()}-${i}`,
+          front: c.front,
+          back: c.back,
+          confidence: 'none' as const,
+        })),
+        lastStudied: new Date().toLocaleDateString(),
+        createdAt: new Date().toLocaleDateString(),
+      };
+      const updated = [deck, ...decks];
+      setDecks(updated);
+      localStorage.setItem('flashcardDecks', JSON.stringify(updated));
+      setTopic('');
+    } catch (err) {
+      console.error('AI flashcards failed, falling back to local:', err);
       const deck = generateFlashcards(topic);
       const updated = [deck, ...decks];
       setDecks(updated);
       localStorage.setItem('flashcardDecks', JSON.stringify(updated));
       setTopic('');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const openDeck = (deck: FlashcardDeck) => {
