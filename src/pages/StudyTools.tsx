@@ -7,6 +7,8 @@ import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateFlashcards, FlashcardDeck, Flashcard } from '@/utils/flashcardGenerator';
 import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
 
 const StudyTools = () => {
   const navigate = useNavigate();
@@ -51,6 +53,7 @@ const StudyTools = () => {
       setTopic('');
     } catch (err) {
       console.error('AI flashcards failed, falling back to local:', err);
+      toast({ title: 'AI generation unavailable', description: 'Using local generator instead. Cards may be less detailed.', variant: 'destructive' });
       const deck = generateFlashcards(topic);
       const updated = [deck, ...decks];
       setDecks(updated);
@@ -172,7 +175,25 @@ const StudyTools = () => {
 
           {/* Decks grid */}
           <h2 className="text-xl font-bold mb-4">Your Decks</h2>
-          {decks.length === 0 ? (
+
+          {/* Loading Skeleton */}
+          {loading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1,2,3].map(i => (
+                <div key={i} className="glass-card rounded-xl p-5">
+                  <Skeleton className="h-5 w-32 mb-3" />
+                  <div className="flex items-center justify-between mb-2">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                  <Skeleton className="h-1.5 w-full rounded-full" />
+                  <Skeleton className="h-3 w-20 mt-1" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!loading && decks.length === 0 ? (
             <div className="glass-card rounded-xl p-10 text-center">
               <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">No decks yet. Generate your first flashcard deck!</p>

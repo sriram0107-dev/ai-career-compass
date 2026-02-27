@@ -9,6 +9,8 @@ import { analyzeInterests, AnalysisResult } from '@/utils/careerData';
 import { useUserData } from '@/contexts/UserDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
 
 const hints = [
   '"I love helping people and I\'m fascinated by the human body..."',
@@ -54,6 +56,7 @@ const Quiz = () => {
       if (navigateAfter) navigate('/results', { state: { fromAnalysis: true } });
     } catch (err) {
       console.error('AI analysis failed, falling back to local:', err);
+      toast({ title: 'AI analysis unavailable', description: 'Using local analysis instead. Results may be less detailed.', variant: 'destructive' });
       const result = analyzeInterests(text, quizAnswers);
       setLocalResult(result);
       setAnalysisResult(result);
@@ -119,6 +122,40 @@ const Quiz = () => {
               {loading ? 'Analyzing...' : 'Analyze My Interests'}
             </button>
           </div>
+
+          {/* Loading Skeleton */}
+          {loading && !analysisResult && (
+            <div className="mt-8 space-y-4">
+              <div className="glass-card rounded-xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Skeleton className="h-5 w-5 rounded" />
+                  <Skeleton className="h-6 w-48" />
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <div className="flex flex-wrap gap-1.5">
+                      {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-6 w-20 rounded-full" />)}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {[1,2,3].map(i => (
+                      <div key={i}>
+                        <Skeleton className="h-3 w-full mb-1" />
+                        <Skeleton className="h-1.5 w-full rounded-full" />
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <Skeleton className="h-4 w-40 mb-2" />
+                    <div className="flex flex-wrap gap-1.5">
+                      {[1,2,3].map(i => <Skeleton key={i} className="h-6 w-24 rounded-full" />)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Analysis Results */}
           {analysisResult && (
