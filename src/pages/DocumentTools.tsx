@@ -6,6 +6,8 @@ import Navbar from '@/components/Navbar';
 import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
 
 const DocumentTools = () => {
   const navigate = useNavigate();
@@ -47,6 +49,7 @@ const DocumentTools = () => {
       setShowResult(true);
     } catch (err) {
       console.error('Summarize failed:', err);
+      toast({ title: 'Analysis failed', description: 'Could not analyze document. Please try again.', variant: 'destructive' });
       setResult({ title: 'Error', points: ['Failed to analyze document. Please try again.'], terms: [], actions: [] });
       setShowResult(true);
     } finally {
@@ -67,6 +70,7 @@ const DocumentTools = () => {
       if (error) throw error;
       setChatHistory(prev => [...prev, { role: 'ai', text: data.reply }]);
     } catch (err) {
+      toast({ title: 'Chat error', description: 'Failed to get a response. Please try again.', variant: 'destructive' });
       setChatHistory(prev => [...prev, { role: 'ai', text: 'Sorry, I encountered an error. Please try again.' }]);
     } finally {
       setChatLoading(false);
@@ -132,6 +136,17 @@ const DocumentTools = () => {
               </button>
 
               {/* Result */}
+              {loading && !showResult && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-6 mt-6 space-y-4">
+                  <Skeleton className="h-6 w-48 mb-4" />
+                  <div className="space-y-2">
+                    {[1,2,3,4].map(i => <Skeleton key={i} className="h-4 w-full" />)}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-6 w-20 rounded-full" />)}
+                  </div>
+                </motion.div>
+              )}
               {showResult && result && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-6 mt-6">
                   <h3 className="font-bold text-lg mb-4">{result.title}</h3>
