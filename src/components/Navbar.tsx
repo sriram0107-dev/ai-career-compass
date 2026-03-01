@@ -1,14 +1,39 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Sun, Moon, LogOut, Menu, X, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 
+const navItems = [
+  { to: '/quiz', label: 'Quiz' },
+  { to: '/results', label: 'Careers' },
+  { to: '/roadmap', label: 'Roadmap' },
+  { to: '/study-tools', label: 'Study' },
+  { to: '/documents', label: 'Documents' },
+  { to: '/profile', label: 'Profile' },
+];
+
+const NavItem = ({ to, label, isActive }: { to: string; label: string; isActive: boolean }) => (
+  <Link to={to} className="relative text-sm py-1 transition-colors duration-200">
+    <span className={isActive ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}>
+      {label}
+    </span>
+    {isActive && (
+      <motion.div
+        layoutId="nav-indicator"
+        className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-primary"
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      />
+    )}
+  </Link>
+);
+
 const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
@@ -26,16 +51,9 @@ const Navbar = () => {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
-          {isAuthenticated && (
-            <>
-              <Link to="/quiz" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Quiz</Link>
-              <Link to="/results" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Careers</Link>
-              <Link to="/roadmap" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Roadmap</Link>
-              <Link to="/study-tools" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Study</Link>
-              <Link to="/documents" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Documents</Link>
-              <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Profile</Link>
-            </>
-          )}
+          {isAuthenticated && navItems.map(item => (
+            <NavItem key={item.to} {...item} isActive={location.pathname === item.to} />
+          ))}
           <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Toggle theme">
             {theme === 'dark' ? <Sun className="h-5 w-5 text-accent" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
           </button>
@@ -64,16 +82,20 @@ const Navbar = () => {
       {/* Mobile menu */}
       <AnimatePresence>
       {mobileOpen && (
-        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="md:hidden border-t border-border bg-background px-4 py-4 space-y-3 overflow-hidden">
+        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="md:hidden border-t border-border bg-background px-4 py-4 space-y-1 overflow-hidden">
           {isAuthenticated ? (
             <>
-              <Link to="/quiz" onClick={() => setMobileOpen(false)} className="block text-sm py-2 text-muted-foreground hover:text-foreground">Quiz</Link>
-              <Link to="/results" onClick={() => setMobileOpen(false)} className="block text-sm py-2 text-muted-foreground hover:text-foreground">Careers</Link>
-              <Link to="/roadmap" onClick={() => setMobileOpen(false)} className="block text-sm py-2 text-muted-foreground hover:text-foreground">Roadmap</Link>
-              <Link to="/study-tools" onClick={() => setMobileOpen(false)} className="block text-sm py-2 text-muted-foreground hover:text-foreground">Study</Link>
-              <Link to="/documents" onClick={() => setMobileOpen(false)} className="block text-sm py-2 text-muted-foreground hover:text-foreground">Documents</Link>
-              <Link to="/profile" onClick={() => setMobileOpen(false)} className="block text-sm py-2 text-muted-foreground hover:text-foreground">Profile</Link>
-              <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block text-sm py-2 text-muted-foreground hover:text-foreground">Logout</button>
+              {navItems.map(item => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block text-sm py-2 px-3 rounded-lg transition-colors ${location.pathname === item.to ? 'text-foreground bg-primary/10 font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block w-full text-left text-sm py-2 px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary">Logout</button>
             </>
           ) : (
             <Link to="/auth" onClick={() => setMobileOpen(false)} className="block gradient-bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium text-center">Sign In</Link>
