@@ -3,6 +3,7 @@ import { Sun, Moon, LogOut, Menu, X, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserData } from '@/contexts/UserDataContext';
 import { useState } from 'react';
 
 const navItems = [
@@ -16,13 +17,22 @@ const navItems = [
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-const NavItem = ({ to, label, description, isActive }: { to: string; label: string; description: string; isActive: boolean }) => (
+const NavItem = ({ to, label, description, isActive, badge }: { to: string; label: string; description: string; isActive: boolean; badge?: number }) => (
   <Tooltip>
     <TooltipTrigger asChild>
       <Link to={to} className="relative text-sm py-1 transition-colors duration-200">
         <span className={isActive ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}>
           {label}
         </span>
+        {badge && badge > 0 ? (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute -top-2 -right-4 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground"
+          >
+            {badge}
+          </motion.span>
+        ) : null}
         {isActive && (
           <motion.div
             layoutId="nav-indicator"
@@ -41,9 +51,12 @@ const NavItem = ({ to, label, description, isActive }: { to: string; label: stri
 const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout, isAuthenticated } = useAuth();
+  const { unviewedBadgeCount } = useUserData();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const getBadge = (to: string) => to === '/profile' ? unviewedBadgeCount : undefined;
 
   const handleLogout = () => {
     logout();
@@ -61,7 +74,7 @@ const Navbar = () => {
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
           {isAuthenticated && navItems.map(item => (
-            <NavItem key={item.to} {...item} isActive={location.pathname === item.to} />
+            <NavItem key={item.to} {...item} isActive={location.pathname === item.to} badge={getBadge(item.to)} />
           ))}
           <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Toggle theme">
             {theme === 'dark' ? <Sun className="h-5 w-5 text-accent" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
@@ -99,9 +112,14 @@ const Navbar = () => {
                   key={item.to}
                   to={item.to}
                   onClick={() => setMobileOpen(false)}
-                  className={`block text-sm py-2 px-3 rounded-lg transition-colors ${location.pathname === item.to ? 'text-foreground bg-primary/10 font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
+                  className={`relative block text-sm py-2 px-3 rounded-lg transition-colors ${location.pathname === item.to ? 'text-foreground bg-primary/10 font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
                 >
                   {item.label}
+                  {getBadge(item.to) ? (
+                    <span className="ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {getBadge(item.to)}
+                    </span>
+                  ) : null}
                 </Link>
               ))}
               <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block w-full text-left text-sm py-2 px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary">Logout</button>

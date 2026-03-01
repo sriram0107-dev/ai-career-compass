@@ -45,6 +45,8 @@ interface UserDataContextType {
   generateRoadmap: (career: Career) => void;
   focusTimeToday: number;
   addFocusTime: (mins: number) => void;
+  unviewedBadgeCount: number;
+  markBadgesViewed: () => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -140,6 +142,18 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
     const saved = localStorage.getItem('badges');
     return saved ? JSON.parse(saved) : defaultBadges;
   });
+  const [viewedBadgeIds, setViewedBadgeIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('viewedBadgeIds');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const unviewedBadgeCount = badges.filter(b => b.earned && !viewedBadgeIds.includes(b.id)).length;
+
+  const markBadgesViewed = useCallback(() => {
+    const earnedIds = badges.filter(b => b.earned).map(b => b.id);
+    setViewedBadgeIds(earnedIds);
+    localStorage.setItem('viewedBadgeIds', JSON.stringify(earnedIds));
+  }, [badges]);
 
   const persist = useCallback((key: string, val: any) => {
     localStorage.setItem(key, JSON.stringify(val));
@@ -228,6 +242,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       savedCareers, toggleSavedCareer,
       roadmap, toggleTask, badges,
       generateRoadmap, focusTimeToday, addFocusTime,
+      unviewedBadgeCount, markBadgesViewed,
     }}>
       {children}
     </UserDataContext.Provider>
