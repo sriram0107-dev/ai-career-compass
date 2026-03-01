@@ -6,27 +6,36 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 
 const navItems = [
-  { to: '/quiz', label: 'Quiz' },
-  { to: '/results', label: 'Careers' },
-  { to: '/roadmap', label: 'Roadmap' },
-  { to: '/study-tools', label: 'Study' },
-  { to: '/documents', label: 'Documents' },
-  { to: '/profile', label: 'Profile' },
+  { to: '/quiz', label: 'Quiz', description: 'Discover your interests and strengths' },
+  { to: '/results', label: 'Careers', description: 'Browse AI-matched career paths' },
+  { to: '/roadmap', label: 'Roadmap', description: 'Your personalized learning plan' },
+  { to: '/study-tools', label: 'Study', description: 'AI-generated flashcards and tools' },
+  { to: '/documents', label: 'Documents', description: 'Summarize and analyze documents' },
+  { to: '/profile', label: 'Profile', description: 'View your progress and achievements' },
 ];
 
-const NavItem = ({ to, label, isActive }: { to: string; label: string; isActive: boolean }) => (
-  <Link to={to} className="relative text-sm py-1 transition-colors duration-200">
-    <span className={isActive ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}>
-      {label}
-    </span>
-    {isActive && (
-      <motion.div
-        layoutId="nav-indicator"
-        className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-primary"
-        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      />
-    )}
-  </Link>
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+const NavItem = ({ to, label, description, isActive }: { to: string; label: string; description: string; isActive: boolean }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Link to={to} className="relative text-sm py-1 transition-colors duration-200">
+        <span className={isActive ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}>
+          {label}
+        </span>
+        {isActive && (
+          <motion.div
+            layoutId="nav-indicator"
+            className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-primary"
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          />
+        )}
+      </Link>
+    </TooltipTrigger>
+    <TooltipContent side="bottom" className="text-xs">
+      {description}
+    </TooltipContent>
+  </Tooltip>
 );
 
 const Navbar = () => {
