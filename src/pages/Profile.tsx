@@ -10,11 +10,15 @@ import { useUserData } from '@/contexts/UserDataContext';
 const Profile = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  const { points, level, tasksCompleted, studyHours, selectedCareer, analysisResult, badges, savedCareers } = useUserData();
+  const { points, level, tasksCompleted, studyHours, selectedCareer, analysisResult, badges, savedCareers, markBadgesViewed } = useUserData();
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/auth');
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    markBadgesViewed();
+  }, [markBadgesViewed]);
 
   if (!user) return null;
 
