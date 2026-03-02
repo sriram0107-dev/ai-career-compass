@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, RotateCcw, ChevronLeft, ChevronRight, Shuffle, Loader2, BookOpen } from 'lucide-react';
+import { Sparkles, RotateCcw, ChevronLeft, ChevronRight, Shuffle, Loader2, BookOpen, Upload, FileText, Type } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,10 +10,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 
+const extractPdfText = async (file: File): Promise<string> => {
+  const pdfjsLib = await import('pdfjs-dist');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  const maxPages = Math.min(pdf.numPages, 30);
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map((item: any) => item.str).join(' ') + '\n';
+  }
+  return text;
+};
+
 const StudyTools = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [topic, setTopic] = useState('');
+  const [mode, setMode] = useState<'topic' | 'pdf'>('topic');
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [decks, setDecks] = useState<FlashcardDeck[]>(() => {
     const saved = localStorage.getItem('flashcardDecks');
     return saved ? JSON.parse(saved) : [];
@@ -28,16 +46,32 @@ const StudyTools = () => {
   }, [isAuthenticated, navigate]);
 
   const handleGenerate = async () => {
-    if (!topic.trim()) return;
+    if (mode === 'topic' && !topic.trim()) return;
+    if (mode === 'pdf' && !pdfFile) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-flashcards', {
-        body: { topic },
-      });
+      let body: Record<string, string> = {};
+      let deckTopic = topic;
+
+      if (mode === 'pdf' && pdfFile) {
+        toast({ title: 'Extracting PDF text...', description: 'Please wait while we read your document.' });
+        const pdfText = await extractPdfText(pdfFile);
+        if (!pdfText.trim()) {
+          toast({ title: 'Could not extract text', description: 'The PDF may be scanned or image-based.', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+        body = { pdfText };
+        deckTopic = pdfFile.name.replace('.pdf', '');
+      } else {
+        body = { topic };
+      }
+
+      const { data, error } = await supabase.functions.invoke('ai-flashcards', { body });
       if (error) throw error;
       const deck: FlashcardDeck = {
         id: `deck-${Date.now()}`,
-        topic,
+        topic: deckTopic,
         cards: (data.cards || []).map((c: { front: string; back: string }, i: number) => ({
           id: `card-${Date.now()}-${i}`,
           front: c.front,
@@ -51,14 +85,17 @@ const StudyTools = () => {
       setDecks(updated);
       localStorage.setItem('flashcardDecks', JSON.stringify(updated));
       setTopic('');
+      setPdfFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       console.error('AI flashcards failed, falling back to local:', err);
       toast({ title: 'AI generation unavailable', description: 'Using local generator instead. Cards may be less detailed.', variant: 'destructive' });
-      const deck = generateFlashcards(topic);
+      const deck = generateFlashcards(mode === 'pdf' && pdfFile ? pdfFile.name.replace('.pdf', '') : topic);
       const updated = [deck, ...decks];
       setDecks(updated);
       localStorage.setItem('flashcardDecks', JSON.stringify(updated));
       setTopic('');
+      setPdfFile(null);
     } finally {
       setLoading(false);
     }
@@ -158,19 +195,65 @@ const StudyTools = () => {
           <p className="text-muted-foreground text-sm mb-8">Generate study cards on any topic</p>
 
           <div className="glass-card rounded-xl p-6 max-w-xl mb-10">
-            <div className="flex gap-3">
-              <input
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleGenerate()}
-                placeholder="Enter any topic..."
-                className="flex-1 bg-secondary rounded-lg px-4 py-2.5 text-sm border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-              <button onClick={handleGenerate} disabled={loading || !topic.trim()} className="gradient-bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium text-sm hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Generate
+            {/* Mode toggle */}
+            <div className="flex rounded-lg bg-secondary p-1 mb-4">
+              <button onClick={() => setMode('topic')} className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${mode === 'topic' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}>
+                <Type className="h-4 w-4" /> Topic
+              </button>
+              <button onClick={() => setMode('pdf')} className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${mode === 'pdf' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}>
+                <FileText className="h-4 w-4" /> Upload PDF
               </button>
             </div>
+
+            {mode === 'topic' ? (
+              <div className="flex gap-3">
+                <input
+                  value={topic}
+                  onChange={e => setTopic(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+                  placeholder="Enter any topic..."
+                  className="flex-1 bg-secondary rounded-lg px-4 py-2.5 text-sm border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <button onClick={handleGenerate} disabled={loading || !topic.trim()} className="gradient-bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium text-sm hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  Generate
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                >
+                  {pdfFile ? (
+                    <div className="flex items-center justify-center gap-2 text-sm">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <span className="text-foreground font-medium">{pdfFile.name}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Click to upload a PDF file</p>
+                    </>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file && file.type === 'application/pdf') setPdfFile(file);
+                      else if (file) toast({ title: 'Invalid file', description: 'Please upload a PDF file.', variant: 'destructive' });
+                    }}
+                  />
+                </div>
+                <button onClick={handleGenerate} disabled={loading || !pdfFile} className="w-full gradient-bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium text-sm hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  Generate from PDF
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Decks grid */}
