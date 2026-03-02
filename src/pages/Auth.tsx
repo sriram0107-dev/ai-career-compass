@@ -23,7 +23,7 @@ const Auth = () => {
     if (!email || !password) { setError('Please fill in all fields'); return; }
     if (!isLogin && password !== confirmPassword) { setError('Passwords do not match'); return; }
     login(email, password, isLogin ? undefined : name);
-    navigate('/quiz');
+    navigate('/');
   };
 
   return (
