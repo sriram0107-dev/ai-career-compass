@@ -12,9 +12,27 @@ serve(async (req) => {
   }
 
   try {
-    const { topic } = await req.json();
+    const { topic, pdfText } = await req.json();
 
-    const prompt = `Generate 8 high-quality flashcards for studying "${topic}". 
+    let prompt: string;
+
+    if (pdfText && pdfText.trim().length > 0) {
+      const truncated = pdfText.slice(0, 12000);
+      prompt = `Based on the following document content, generate 10 high-quality flashcards that cover the key concepts, definitions, and important details.
+
+Document content:
+"""
+${truncated}
+"""
+
+Return a JSON array (no markdown, just raw JSON) with this structure:
+[
+  { "front": "Question text", "back": "Detailed answer" }
+]
+
+Make the questions progressively harder. Include a mix of definitions, concepts, applications, and analysis questions. Be specific and educational. Base all questions strictly on the provided document content.`;
+    } else {
+      prompt = `Generate 8 high-quality flashcards for studying "${topic}". 
 
 Return a JSON array (no markdown, just raw JSON) with this structure:
 [
@@ -22,6 +40,7 @@ Return a JSON array (no markdown, just raw JSON) with this structure:
 ]
 
 Make the questions progressively harder. Include a mix of definitions, concepts, applications, and analysis questions. Be specific and educational.`;
+    }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
