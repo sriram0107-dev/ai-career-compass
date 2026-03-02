@@ -31,6 +31,7 @@ const StudyTools = () => {
   const [topic, setTopic] = useState('');
   const [mode, setMode] = useState<'topic' | 'pdf'>('topic');
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [decks, setDecks] = useState<FlashcardDeck[]>(() => {
     const saved = localStorage.getItem('flashcardDecks');
@@ -223,7 +224,16 @@ const StudyTools = () => {
               <div className="space-y-3">
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={e => {
+                    e.preventDefault();
+                    setDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && file.type === 'application/pdf') setPdfFile(file);
+                    else if (file) toast({ title: 'Invalid file', description: 'Please upload a PDF file.', variant: 'destructive' });
+                  }}
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${dragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
                 >
                   {pdfFile ? (
                     <div className="flex items-center justify-center gap-2 text-sm">
@@ -233,7 +243,7 @@ const StudyTools = () => {
                   ) : (
                     <>
                       <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Click to upload a PDF file</p>
+                      <p className="text-sm text-muted-foreground">{dragging ? 'Drop your PDF here' : 'Drag & drop or click to upload a PDF'}</p>
                     </>
                   )}
                   <input
